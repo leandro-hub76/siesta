@@ -1,36 +1,71 @@
-import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ControlButtons from '../components/ControlButtons';
+import DurationSlider from '../components/DurationSlider';
 import Header from '../components/Header';
 import TimerRing from '../components/TimerRing';
 import { colors } from '../constants/colors';
-
+import { SECONDS_PER_MINUTE } from '../constants/timer';
+import { formatTime } from './utils/formatTIme';
 export default function Index() {
   const [isRunning, setIsRunning] = useState(false);
+  const [durationMinutes, setDurationMinutes] = useState(5);
+  useEffect(() => {
+  if (!isRunning) return;
+  setInterval(() => {
+    setSecondsLeft((prev) => prev - 1);
+  }, 1000);
+}, [isRunning]);
+  const [secondsLeft, setSecondsLeft] = useState(5 * SECONDS_PER_MINUTE);
+useEffect(() => {
+  console.log('Effect ran');
+});
+useEffect(() => {
+  if (secondsLeft > 0) return;
+  setIsRunning(false);
+}, [secondsLeft]);
+function handleDurationChange(minutes: number) {
+  setDurationMinutes(minutes);
+  setSecondsLeft(minutes * SECONDS_PER_MINUTE);
+  setIsRunning(false);
+}
+const progress = secondsLeft / (durationMinutes * SECONDS_PER_MINUTE);
+const isDone = secondsLeft === 0;
 
+function handleStart() {
+  if (secondsLeft === 0) setSecondsLeft(durationMinutes * SECONDS_PER_MINUTE);
+  setIsRunning(true);
+}
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.content}>
         <Header />
-        <TimerRing progress={1} timeText="05:00" />
+<TimerRing progress={progress} timeText={formatTime(secondsLeft)} />
+{isDone && (
+  <View style={styles.done}>
+    <View style={styles.doneDot} />
+    <Text style={styles.doneText}>¡Listo! Hora de volver</Text>
+  </View>
+)}
         <ControlButtons
           isRunning={isRunning}
-          onStart={() => setIsRunning(true)}
+          onStart={handleStart}
           onPause={() => setIsRunning(false)} />
       </View>
+      <View style={styles.settings}>
+  <DurationSlider minutes={durationMinutes} onChange={handleDurationChange} />
+</View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-    gap: 20,
-  },
+    flex: 1, backgroundColor: colors.background },
+  content: { flex: 1, padding: 20, gap: 20 },
+  settings: { backgroundColor: colors.card, borderRadius: 20, padding: 20, gap: 16 },
+  done: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
+doneDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.warning },
+doneText: { fontSize: 14, color: colors.textMuted },
 });
